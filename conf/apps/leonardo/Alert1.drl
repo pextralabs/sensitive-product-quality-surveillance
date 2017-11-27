@@ -1,0 +1,68 @@
+package drools
+
+import models.*;
+import akka.actor.ActorRef;
+
+import br.ufes.inf.lprm.scene.model.Situation;
+import br.ufes.inf.lprm.situation.bindings.*;
+import br.ufes.inf.lprm.situation.model.Participation;
+import br.ufes.inf.lprm.situation.model.SituationType;
+import br.ufes.inf.lprm.scene.util.SituationHelper;
+
+global ActorRef publisher;
+
+declare Data
+	@role(event)
+	@timestamp(serverTimestamp)
+end
+
+declare AlertSituation extends Situation
+    stream: Stream @part @key
+end
+
+declare AlertLevel1 extends AlertSituation
+end
+
+declare AlertLevel2 extends AlertSituation
+end
+
+rule "AlertLevel1"
+@role(situation)
+@type(AlertLevel1)
+    when
+        stream: Stream(key == "985bf2cde9b54a54b8fcd3423d89ad89")
+        Double(doubleValue() >= 20.0) from accumulate(
+            Data($value: get("temp"), this.stream.key == "985bf2cde9b54a54b8fcd3423d89ad89") over window:length(2),
+            average($value)
+        )
+    then
+    	SituationHelper.situationDetected(drools);
+end
+
+rule "AlertLevel2"
+@role(situation)
+@type(AlertLevel2)
+    when
+        stream: Stream(key == "985bf2cde9b54a54b8fcd3423d89ad89")
+        Double(doubleValue() >= 25.0) from accumulate(
+            Data($value: get("temp"), this.stream.key == "985bf2cde9b54a54b8fcd3423d89ad89") over window:length(2),
+            average($value)
+        )
+    then
+    	SituationHelper.situationDetected(drools);
+end
+
+rule "PublishAlert"
+  when
+     $alert: AlertSituation()
+  then
+     publisher.tell($alert.toString(), null);
+end
+
+rule "Data"
+  when
+      $stream: Stream()
+      $data: Data(stream == $stream)
+  then
+      publisher.tell("value from " + $stream.getName() + "(" + $stream.getKey() + ") is " + $data.get("temp"), null);
+end
