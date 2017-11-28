@@ -34,10 +34,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -143,6 +140,29 @@ public class SceneActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(Protocols.Operation.class, (Protocols.Operation operation) -> {
+                    Collection collection;
+                    if (operation.obj instanceof Collection) {
+                        collection = (Collection) operation.obj;
+                    } else {
+                        collection = new ArrayList();
+                        collection.add(operation.obj);
+                    }
+                    switch (operation.type) {
+                        case INSERT:
+                            kSession.submit(session -> collection.forEach(session::insert));
+                            break;
+                        case UPDATE:
+                            kSession.submit(session -> collection.forEach(item -> {
+                                session.update(session.getFactHandle(item), item);
+                            }));
+                            break;
+                        case DELETE:
+                            kSession.submit(session -> collection.forEach(item -> {
+                                session.delete(session.getFactHandle(item));
+                            }));
+                    }
+                } )
                 .match(Protocols.Subscribe.class, subscribe -> {
                     logger.info("adding a new subscriber for `{}`", self().path());
                     subscribers.add(sender());
