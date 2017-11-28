@@ -5,14 +5,17 @@ import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import br.ufes.inf.lprm.scene.SceneApplication;
-import com.google.inject.assistedinject.Assisted;
+import br.ufes.inf.lprm.scene.base.listeners.SCENESessionListener;
+import org.kie.api.conf.EqualityBehaviorOption;
+import org.kie.api.event.rule.DebugRuleRuntimeEventListener;
+import org.kie.api.runtime.rule.FactHandle;
 import play.api.Environment;
-import scene.PersistenceListener;
+import repos.EntityRepo;
+import scene.SituationBroadcaster;
 import javassist.ClassPool;
 import javassist.LoaderClassPath;
 import org.drools.compiler.kproject.models.KieModuleModelImpl;
 import org.drools.core.ClockType;
-import org.kie.api.KieBase;
 import org.kie.api.KieServices;
 import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
@@ -38,13 +41,18 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static actors.Protocols.Operation.Type.INSERT;
+
 public class SceneActor extends AbstractActor {
 
     private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
-    private Set<ActorRef> subscribers;
-    private final KieSession kSession;
-    private final ExecutorService ex;
+    private final Set<ActorRef> subscribers;
+    private final Environment env;
+    private final EntityRepo entityRepo;
+
+    private  KieSession kSession;
+    private  ExecutorService ex;
 
     private KieSession newSession(Environment env, String sceneId) {
         // Getting KieServices
@@ -58,9 +66,10 @@ public class SceneActor extends AbstractActor {
 
         KieBaseModel kieBaseModel = kieModuleModel.newKieBaseModel(sceneId);
         kieBaseModel.setEventProcessingMode(EventProcessingOption.STREAM);
+        kieBaseModel.setEqualsBehavior(EqualityBehaviorOption.EQUALITY);
         kieBaseModel.addInclude("sceneKieBase");
 
-        File userpath = env.getFile("conf/scene/" + sceneId);
+        File userpath = env.getFile("conf/scene/");
 
         File[] files = userpath.listFiles(pathname -> pathname.getName().toLowerCase().endsWith(".drl"));
 
@@ -106,22 +115,17 @@ public class SceneActor extends AbstractActor {
         KieModule kModule = kbuilder.getKieModule();
         KieContainer kContainer = kServices.newKieContainer(kModule.getReleaseId());
 
-        /*KieBaseConfiguration config = KieServices.Factory.get().newKieBaseConfiguration();
-        config.setOption(EventProcessingOption.STREAM);
-        KieBase kieBase = kContainer.newKieBase("temporal-operators", config);*/
-
         KieSession kSession = kContainer.newKieSession(sceneId + ".session");
-        kSession.addEventListener(new PersistenceListener(self(), subscribers));
+        kSession.addEventListener(new SituationBroadcaster(self(), subscribers, logger));
+        //kSession.addEventListener(new SCENESessionListener());
         return kSession;
 
     }
 
-    @Inject
-    public SceneActor(Environment env) {
+    @Override
+    public void preStart() {
 
         Logger.debug("Starting scene actor");
-
-        this.subscribers = new HashSet<>();
 
         kSession = newSession(env, "scene-actor");
 
@@ -132,9 +136,28 @@ public class SceneActor extends AbstractActor {
 
         SceneApplication app = new SceneApplication(classPool, kSession, "scene-actor");
 
-        //kSession.setGlobal("publisher", publisher);
+        entityRepo.getEntities().thenAccept(
+            entities -> {
+                self().tell(new Protocols.Operation(entities, INSERT), self() );
+                entities.forEach(
+
+                        entity -> self().tell(new Protocols.Operation(entity.getSensors(), INSERT), self() )
+                );
+            }
+        );
+
+        kSession.setGlobal("logger", logger);
         ex = Executors.newSingleThreadExecutor();
+
         ex.submit((Runnable) kSession::fireUntilHalt);
+    }
+
+    @Inject
+    public SceneActor(Environment env, EntityRepo entityRepo) {
+        this.env = env;
+        this.entityRepo = entityRepo;
+
+        this.subscribers = new HashSet<>();
     }
 
     @Override
@@ -154,7 +177,13 @@ public class SceneActor extends AbstractActor {
                             break;
                         case UPDATE:
                             kSession.submit(session -> collection.forEach(item -> {
-                                session.update(session.getFactHandle(item), item);
+                                FactHandle handle = session.getFactHandle(item);
+                                if (handle == null) {
+                                    logger.debug("fact handle for `{}` not found... inserting it", item);
+                                    session.insert(item);
+                                } else {
+                                    session.update(handle, item);
+                                }
                             }));
                             break;
                         case DELETE:

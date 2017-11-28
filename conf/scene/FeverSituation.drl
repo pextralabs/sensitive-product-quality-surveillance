@@ -1,0 +1,55 @@
+package scene;
+
+import models.Sensor;
+import models.Entity;
+
+import br.ufes.inf.lprm.scene.model.Situation;
+import br.ufes.inf.lprm.situation.bindings.*;
+import br.ufes.inf.lprm.situation.model.Participation;
+import br.ufes.inf.lprm.situation.model.SituationType;
+import br.ufes.inf.lprm.scene.util.SituationHelper;
+
+import akka.event.LoggingAdapter;
+
+global LoggingAdapter logger
+
+declare Fever extends Situation
+    febrile: Entity @part @key
+end
+
+rule "Fever"
+@role(situation)
+@type(Fever)
+    when
+        febrile: Entity(type == "Person")
+        Sensor(bearer == febrile, label=="temperature", value > 37.5)
+    then
+    	SituationHelper.situationDetected(drools);
+end
+
+rule "Entity"
+    when
+        e: Entity()
+    then
+    	logger.info("inserted/updated entity: {}", e);
+end
+
+rule "Sensor"
+    when
+        s: Sensor()
+    then
+    	logger.info("inserted/updated sensor: {}", s);
+end
+
+rule "Situation"
+    when
+        s: Fever()
+    then
+        if (s.isActive()) {
+    	    logger.info("situation activation... {}", s.getUID());
+        } else {
+    	    logger.info("situation deactivation... {}", s.getUID());
+        }
+end
+
+

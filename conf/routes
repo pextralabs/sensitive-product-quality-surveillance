@@ -3,9 +3,18 @@
 # ~~~~
 
 
-GET     /                           controllers.HomeController.index()
+GET     /                                   controllers.HomeController.index()
 
-GET     /subscribe                  controllers.HomeController.subscribe()
+GET     /subscribe                          controllers.HomeController.subscribe()
+
+#GET     /entities                   controllers.EntityController.getEntities()
+
+POST    /entities                           controllers.EntityController.addEntity()
+
+POST    /entities/:entityId                 controllers.EntityController.addSensor(entityId: Long)
+
+POST    /entities/:entityId/sensors/:sensorId/update  controllers.EntityController.updateSensor(entityId: Long, sensorId: Long)
+
 
 
 #GET     /situations?active=true&length=5&
