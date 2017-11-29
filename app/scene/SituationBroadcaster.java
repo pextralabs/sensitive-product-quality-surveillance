@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import models.Entity;
 import models.Persistent;
 import org.kie.api.event.rule.DefaultRuleRuntimeEventListener;
 import org.kie.api.event.rule.ObjectInsertedEvent;
@@ -50,12 +51,12 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
         ObjectNode situationNode = Json.newObject();
         json.set("situation", situationNode);
 
-        situationNode.put("runningId", event.getSituation().getUID());
+        situationNode.put("rid", event.getSituation().getUID());
         situationNode.put("type", event.getSituation().getType().getName());
         situationNode.put("active", event.getSituation().isActive());
         situationNode.put("started", event.getSituation().getActivation().getTimestamp());
         if (!event.getSituation().isActive()) {
-            situationNode.put("finished", event.getSituation().getActivation().getTimestamp());
+            situationNode.put("finished", event.getSituation().getDeactivation().getTimestamp());
         }
 
         ArrayNode participationsNode = json.putArray("participations");
@@ -66,7 +67,12 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
                     if (participation.getActor() instanceof Persistent) {
                         participationNode.put("id", ((Persistent) participation.getActor()).getId());
                     }
-                    participationNode.put("type", participation.getActor().getClass().getCanonicalName());
+
+                    if (participation.getActor() instanceof Entity) {
+                        participationNode.put("type", ((Entity) participation.getActor()).getType());
+                    }
+                    else participationNode.put("type", participation.getActor().getClass().getCanonicalName());
+
                     participationNode.put("as", participation.getPart().getLabel());
                     participationsNode.add(participationNode);
                 }
@@ -80,7 +86,7 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
         try {
             Object in = event.getObject();
             if (in instanceof Situation) {
-                logger.info("SITUATION ACTIVATED");
+                logger.info( beautify(toJson(((Situation) in).getActivation())));
                 subscribers.forEach(
                         subscriber -> subscriber.tell(toJson(((Situation) in).getActivation()), owner)
                 );
@@ -96,7 +102,8 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
         try {
             Object in = event.getObject();
             if (in instanceof Situation) {
-                logger.info("SITUATION DEACTIVATED");
+                logger.info( beautify(toJson(((Situation) in).getDeactivation())));
+
                 subscribers.forEach(
                         subscriber -> subscriber.tell(toJson(((Situation) in).getDeactivation()), owner)
                 );

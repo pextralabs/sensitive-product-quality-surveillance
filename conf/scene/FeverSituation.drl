@@ -14,7 +14,7 @@ import akka.event.LoggingAdapter;
 global LoggingAdapter logger
 
 declare Fever extends Situation
-    febrile: Entity @part @key
+    febrile: Entity @part
 end
 
 rule "Fever"
@@ -39,17 +39,6 @@ rule "Sensor"
         s: Sensor()
     then
     	logger.info("inserted/updated sensor: {}", s);
-end
-
-rule "Situation"
-    when
-        s: Fever()
-    then
-        if (s.isActive()) {
-    	    logger.info("situation activation... {}", s.getUID());
-        } else {
-    	    logger.info("situation deactivation... {}", s.getUID());
-        }
 end
 
 

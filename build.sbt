@@ -13,9 +13,9 @@ libraryDependencies ++= Seq(
   ws,
   guice,
   "com.h2database" % "h2" % "1.4.192",
-  "org.drools" % "drools-core" % "7.0.0.Final",
-  "org.drools" % "drools-compiler" % "7.0.0.Final",
-  "br.ufes.inf.lprm" % "scene-core" % "0.10.7" exclude("org.slf4j","slf4j-log4j12")
+  "org.drools" % "drools-core" % "7.4.1.Final",
+  "org.drools" % "drools-compiler" % "7.4.1.Final",
+  "br.ufes.inf.lprm" % "scene-core" % "0.10.8-rc1" exclude("org.slf4j","slf4j-log4j12")
 )
 
 //docker setup

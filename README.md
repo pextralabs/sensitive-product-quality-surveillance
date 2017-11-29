@@ -1,25 +1,58 @@
-[<img src="https://img.shields.io/travis/playframework/play-java-ebean-example.svg"/>](https://travis-ci.org/playframework/play-java-ebean-example)
+# play SCENE
 
-# play-java-ebean-example
+This is an example Play application with a SCENE (`0.10.8-rc1`) engine. It has a simple Entity-Sensor model which can be managed through a RESTFul Api.
 
-This is an example Play application that uses Java, and communicates with an in memory database using EBean.
+The engine deploys a single KnowledgeBase with every DRL declared in `conf/scene/`. It goes with a simple `Fever` situation scenario for the sake of demonstration.
 
-The Github location for this project is:
+### RESTFul API
 
-[https://github.com/playframework/play-java-ebean-example](https://github.com/playframework/play-java-ebean-example)
+##### ADD ENTITY
+**POST** `/entities`
 
-## Play
+```json
+{ 
+  "name": "pereirazc",
+  "type": "Person"
+} 
+```
+##### ADD SENSOR FOR AN ENTITY
+**POST** `/entities/:entityId`
+```json
+{ 
+  "label": "temperature",
+  "default": 36.5
+} 
+```
+##### UPDATE SENSOR VALUE
+**POST** `/entities/:entityId/sensors/:sensorId/update`
+```json
+{ 
+  "value": 37.5
+} 
+```
 
-Play documentation is here:
+##### WEBSOCKET SUBSCRIPTION
 
-[https://playframework.com/documentation/latest/Home](https://playframework.com/documentation/latest/Home)
+You can subscribe to be notified of every identified situation (activation/deactivation) by the application
 
-## EBean
+**GET** `/subscribe`
+```json
+{
+  "type" : "activation",
+  "timestamp" : 1511981221538,
+  "situation" : {
+    "rid" : -307100164,
+    "type" : "scene.Fever",
+    "active" : true,
+    "started" : 1511981221538
+  },
+  "participations" : [ 
+      {
+        "id" : 1,
+        "type" : "Person",
+        "as" : "febrile"
+      } 
+  ]
+} 
+```
 
-EBean is a Java ORM library that uses SQL:
-
-[https://www.playframework.com/documentation/latest/JavaEbean](https://www.playframework.com/documentation/latest/JavaEbean)
-
-and the documentation can be found here:
-
-[https://ebean-orm.github.io/](https://ebean-orm.github.io/)
