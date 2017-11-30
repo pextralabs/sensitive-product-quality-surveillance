@@ -107,6 +107,7 @@ public class SceneActor extends AbstractActor {
         kbuilder.setDependencies(dependencies.toArray(new Resource[0]));
         kbuilder.buildAll();
         if (kbuilder.getResults().hasMessages()) {
+            logger.error("Couldn't build knowledge module " + kbuilder.getResults());
             throw new IllegalArgumentException("Couldn't build knowledge module " + kbuilder.getResults());
         }
 
