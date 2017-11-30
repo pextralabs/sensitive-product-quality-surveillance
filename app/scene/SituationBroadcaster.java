@@ -59,10 +59,10 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
             situationNode.put("finished", event.getSituation().getDeactivation().getTimestamp());
         }
 
-        ArrayNode participationsNode = json.putArray("participations");
+        ArrayNode participationsNode = situationNode.putArray("participations");
 
         event.getSituation().getParticipations().forEach(
-                (participation) -> {
+                participation -> {
                     ObjectNode participationNode = Json.newObject();
                     if (participation.getActor() instanceof Persistent) {
                         participationNode.put("id", ((Persistent) participation.getActor()).getId());
@@ -93,7 +93,6 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
-            //throw e;
         }
     }
 
@@ -110,7 +109,6 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
-            //throw e;
         }
     }
 

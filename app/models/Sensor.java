@@ -28,7 +28,8 @@ public class Sensor extends Persistent {
         return value;
     }
 
-    public void setValue(Double value) {
+    public Sensor setValue(Double value) {
         this.value = value;
+        return this;
     }
 }

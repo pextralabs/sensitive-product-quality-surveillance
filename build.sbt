@@ -18,17 +18,6 @@ libraryDependencies ++= Seq(
   "br.ufes.inf.lprm" % "scene-core" % "0.10.8-rc1" exclude("org.slf4j","slf4j-log4j12")
 )
 
-//docker setup
-packageName in Docker := "pextra/multicast-server"
-version in Docker := version.value
-maintainer in Docker := "Isaac Pereira"
-dockerExposedPorts in Docker := Seq(9000, 9443)
-dockerExposedVolumes in Docker := Seq("/opt/docker/logs",
-                                      "/opt/docker/conf")
-
 javaOptions in Universal ++= Seq(
   "-Dpidfile.path=/dev/null"
 )
-
-
-//dockerRepository in Docker := Some("https://hub.docker.com/r/pereirazc/multicast-cloud")

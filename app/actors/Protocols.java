@@ -2,6 +2,10 @@ package actors;
 
 public class Protocols {
 
+    private Protocols() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static class Operation {
 
         public enum Type {

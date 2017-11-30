@@ -11,19 +11,19 @@ import java.util.concurrent.CompletionStage;
 
 public class JsonErrorHandler implements HttpErrorHandler {
 
-    private JsonNode JsonError(String msg) {
+    private JsonNode jsonError(String msg) {
         return Json.newObject().put("error", msg);
     }
 
     public CompletionStage<Result> onClientError(RequestHeader request, int statusCode, String message) {
         return CompletableFuture.completedFuture(
-                Results.status(statusCode, JsonError(message)).as("application/json")
+                Results.status(statusCode, jsonError(message)).as("application/json")
         );
     }
 
     public CompletionStage<Result> onServerError(RequestHeader request, Throwable exception) {
         return CompletableFuture.completedFuture(
-                Results.internalServerError(JsonError(exception.getMessage())).as("application/json")
+                Results.internalServerError(jsonError(exception.getMessage())).as("application/json")
         );
     }
 

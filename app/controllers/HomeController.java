@@ -40,24 +40,5 @@ public class HomeController extends Controller {
         );
     }
 
-/*    public WebSocket subscribe(String username) {
-        return WebSocket.Json.acceptOrResult(
-          request -> {
-              CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>> future = userRepo.getByUsername(username).thenApplyAsync(
-                      userOpt -> {
-                          if (userOpt.isPresent()) {
-                              return F.Either.Right(ActorFlow.actorRef(
-                                      out -> WsSubscriberActor.props(sceneActor, out, userOpt.get()),
-                                      actorSystem,
-                                      mat));
-                          } else {
-                              return F.Either.Left(forbidden());
-                          }
-                      });
-              return future;
-          }
-        );
-    }*/
-
 }
             

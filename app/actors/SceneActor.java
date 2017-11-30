@@ -5,9 +5,7 @@ import akka.actor.ActorRef;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import br.ufes.inf.lprm.scene.SceneApplication;
-import br.ufes.inf.lprm.scene.base.listeners.SCENESessionListener;
 import org.kie.api.conf.EqualityBehaviorOption;
-import org.kie.api.event.rule.DebugRuleRuntimeEventListener;
 import org.kie.api.runtime.rule.FactHandle;
 import play.api.Environment;
 import repos.EntityRepo;
@@ -51,8 +49,8 @@ public class SceneActor extends AbstractActor {
     private final Environment env;
     private final EntityRepo entityRepo;
 
-    private  KieSession kSession;
-    private  ExecutorService ex;
+    private KieSession kSession;
+
 
     private KieSession newSession(Environment env, String sceneId) {
         // Getting KieServices
@@ -81,7 +79,7 @@ public class SceneActor extends AbstractActor {
             }
         }
 
-        KieSessionModel kieSessionModel = kieBaseModel.newKieSessionModel(sceneId + ".session");
+        KieSessionModel kieSessionModel = kieBaseModel.newKieSessionModel(sceneId + ".kSession");
         kieSessionModel.setClockType(ClockTypeOption.get(ClockType.REALTIME_CLOCK.getId()))
                 .setType(KieSessionModel.KieSessionType.STATEFUL);
 
@@ -103,7 +101,7 @@ public class SceneActor extends AbstractActor {
 
             }
         } catch (IOException e1) {
-            e1.printStackTrace();
+            logger.error(e1.getMessage());
         }
 
         kbuilder.setDependencies(dependencies.toArray(new Resource[0]));
@@ -115,10 +113,9 @@ public class SceneActor extends AbstractActor {
         KieModule kModule = kbuilder.getKieModule();
         KieContainer kContainer = kServices.newKieContainer(kModule.getReleaseId());
 
-        KieSession kSession = kContainer.newKieSession(sceneId + ".session");
-        kSession.addEventListener(new SituationBroadcaster(self(), subscribers, logger));
-        //kSession.addEventListener(new SCENESessionListener());
-        return kSession;
+        KieSession session = kContainer.newKieSession(sceneId + ".kSession");
+        session.addEventListener(new SituationBroadcaster(self(), subscribers, logger));
+        return session;
 
     }
 
@@ -134,7 +131,7 @@ public class SceneActor extends AbstractActor {
         classPool.appendClassPath(new LoaderClassPath(Enhancer.class.getClassLoader()));
         classPool.appendClassPath(new LoaderClassPath(env.classLoader()));
 
-        SceneApplication app = new SceneApplication(classPool, kSession, "scene-actor");
+        new SceneApplication(classPool, kSession, "scene-actor");
 
         entityRepo.getEntities().thenAccept(
             entities -> {
@@ -147,8 +144,9 @@ public class SceneActor extends AbstractActor {
         );
 
         kSession.setGlobal("logger", logger);
-        ex = Executors.newSingleThreadExecutor();
 
+        ExecutorService ex;
+        ex = Executors.newSingleThreadExecutor();
         ex.submit((Runnable) kSession::fireUntilHalt);
     }
 
@@ -187,9 +185,7 @@ public class SceneActor extends AbstractActor {
                             }));
                             break;
                         case DELETE:
-                            kSession.submit(session -> collection.forEach(item -> {
-                                session.delete(session.getFactHandle(item));
-                            }));
+                            kSession.submit(session -> collection.forEach(item -> session.delete(session.getFactHandle(item))));
                     }
                 } )
                 .match(Protocols.Subscribe.class, subscribe -> {

@@ -1,28 +1,25 @@
 package controllers;
 
 import actors.Protocols;
-import actors.WsSubscriberActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.stream.Materializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.inject.name.Named;
 import models.Entity;
 import models.Sensor;
 import play.libs.Json;
 import play.libs.concurrent.HttpExecutionContext;
-import play.libs.streams.ActorFlow;
 import play.mvc.BodyParser;
 import play.mvc.Controller;
 import play.mvc.Result;
-import play.mvc.WebSocket;
 import repos.EntityRepo;
 import utils.JsonResults;
-import utils.JsonViews;
 
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+
+import static actors.Protocols.Operation.Type.INSERT;
+import static actors.Protocols.Operation.Type.UPDATE;
 
 public class EntityController extends Controller {
 
@@ -54,7 +51,7 @@ public class EntityController extends Controller {
         return entityRepo.save(entity).thenApplyAsync(
                 ent -> {
                     sceneActor.tell(new Protocols.Operation(ent, Protocols.Operation.Type.INSERT), null );
-                    return JsonResults.ok(JsonViews.toString(ent));
+                    return ok(Json.toJson(ent));
                 },
                 httpExecutionContext.current()
         );
@@ -73,12 +70,12 @@ public class EntityController extends Controller {
                                 if (!sensorNode.has("label"))
                                     return JsonResults.badRequest("missing label");
 
-                                if (!sensorNode.has("default"))
+                                if (!sensorNode.has("initValue"))
                                     return JsonResults.badRequest("missing default value");
 
-                                Sensor sensor = new Sensor((Entity) entity, sensorNode.findPath("label").textValue(), sensorNode.findPath("default").doubleValue() );
+                                Sensor sensor = new Sensor((Entity) entity, sensorNode.findPath("label").textValue(), sensorNode.findPath("initValue").doubleValue() );
                                 sensor.save();
-                                sceneActor.tell(new Protocols.Operation(sensor, Protocols.Operation.Type.INSERT), null );
+                                sceneActor.tell(new Protocols.Operation(sensor, INSERT), null );
                                 return ok(Json.toJson(sensor));
                             }
                     ).orElse(
@@ -88,9 +85,9 @@ public class EntityController extends Controller {
         );
     }
 
-    public CompletionStage<Result> updateSensor(Long EntityId, Long sensorId) {
+    public CompletionStage<Result> updateSensor(Long entityId, Long sensorId) {
 
-        return entityRepo.getSensorByEntity(EntityId, sensorId).thenApplyAsync(
+        return entityRepo.getSensorByEntity(entityId, sensorId).thenApplyAsync(
             maybeEntity ->
                 maybeEntity.map(
                     sensor -> {
@@ -98,10 +95,11 @@ public class EntityController extends Controller {
                         if (!sensorNode.has("value"))
                             return JsonResults.badRequest("missing value");
 
-                        sensor.setValue(sensorNode.findPath("value").doubleValue());
+                        sensor.setValue(
+                                sensorNode.findPath("value").doubleValue()
+                        ).save();
 
-                        sensor.save();
-                        sceneActor.tell(new Protocols.Operation(sensor, Protocols.Operation.Type.UPDATE), null );
+                        sceneActor.tell(new Protocols.Operation(sensor, UPDATE), null );
                         return ok(Json.toJson(sensor));
                     }
                 ).orElse(

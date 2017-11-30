@@ -20,7 +20,7 @@ The engine deploys a single KnowledgeBase with every DRL declared in `conf/scene
 ```json
 { 
   "label": "temperature",
-  "default": 36.5
+  "initValue": 36.5
 } 
 ```
 ##### UPDATE SENSOR VALUE
