@@ -9,6 +9,7 @@ import org.kie.api.conf.EqualityBehaviorOption;
 import org.kie.api.runtime.rule.FactHandle;
 import play.api.Environment;
 import repos.EntityRepo;
+import scala.Option;
 import scene.SituationBroadcaster;
 import javassist.ClassPool;
 import javassist.LoaderClassPath;
@@ -34,6 +35,7 @@ import play.Logger;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -67,7 +69,16 @@ public class SceneActor extends AbstractActor {
         kieBaseModel.setEqualsBehavior(EqualityBehaviorOption.EQUALITY);
         kieBaseModel.addInclude("sceneKieBase");
 
-        File userpath = env.getFile("conf/scene/");
+        Option<URL> scenePath = env.resource("scene");
+
+        if (scenePath.isEmpty()) throw new IllegalStateException("couldn't find scene's root dir");
+
+        File userpath;
+        try {
+            userpath = new File(scenePath.get().toURI());
+        } catch(URISyntaxException e) {
+            userpath = new File(scenePath.get().getPath());
+        }
 
         File[] files = userpath.listFiles(pathname -> pathname.getName().toLowerCase().endsWith(".drl"));
 
