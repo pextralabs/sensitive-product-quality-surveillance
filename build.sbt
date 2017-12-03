@@ -1,6 +1,6 @@
 name := "play-scene-actor"
 
-version := "0.1.0"
+version := "0.2.0"
 
 scalaVersion := "2.12.2"
 
@@ -18,8 +18,11 @@ libraryDependencies ++= Seq(
   "org.drools" % "drools-core" % "7.4.1.Final",
   "org.drools" % "drools-compiler" % "7.4.1.Final",
   "br.ufes.inf.lprm" % "scene-core" % "0.10.8-rc1" exclude("org.slf4j","slf4j-log4j12"),
+
+  "br.ufes.inf.lprm" % "context-model" % "1.0",
   // Testing libraries for dealing with CompletionStage...
   "org.assertj" % "assertj-core" % "3.8.0" % Test,
+
   "org.awaitility" % "awaitility" % "3.0.0" % Test
 )
 

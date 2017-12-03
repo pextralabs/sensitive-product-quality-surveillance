@@ -8,7 +8,6 @@ import br.ufes.inf.lprm.scene.SceneApplication;
 import org.kie.api.conf.EqualityBehaviorOption;
 import org.kie.api.runtime.rule.FactHandle;
 import play.api.Environment;
-import repos.EntityRepo;
 import repos.SensorRepo;
 import scala.Option;
 import scene.SituationBroadcaster;
@@ -40,8 +39,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static actors.Protocols.Operation.Type.INSERT;
 
@@ -51,7 +48,6 @@ public class SceneActor extends AbstractActor {
 
     private final Set<ActorRef> subscribers;
     private final Environment env;
-    private final EntityRepo entityRepo;
     private final SensorRepo sensorRepo;
 
     private KieSession kSession;
@@ -148,16 +144,6 @@ public class SceneActor extends AbstractActor {
 
         new SceneApplication(classPool, kSession, "scene-actor");
 
-        entityRepo.getEntities().thenAccept(
-            entities -> {
-                self().tell(new Protocols.Operation(entities, INSERT), self() );
-                entities.forEach(
-
-                        entity -> self().tell(new Protocols.Operation(entity.getSensors(), INSERT), self() )
-                );
-            }
-        );
-
         sensorRepo.getSensors().thenAccept(
                 sensors -> {
                     self().tell(new Protocols.Operation(sensors, INSERT), self() );
@@ -186,10 +172,9 @@ public class SceneActor extends AbstractActor {
     }
 
     @Inject
-    public SceneActor(Environment env, EntityRepo entityRepo, SensorRepo sensorRepo) {
+    public SceneActor(Environment env, SensorRepo sensorRepo) {
         this.env = env;
         this.sensorRepo = sensorRepo;
-        this.entityRepo = entityRepo;
 
         this.subscribers = new HashSet<>();
     }

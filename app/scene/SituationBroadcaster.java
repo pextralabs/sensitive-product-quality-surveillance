@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.base.Entity;
 import models.Persistent;
 import org.kie.api.event.rule.DefaultRuleRuntimeEventListener;
 import org.kie.api.event.rule.ObjectInsertedEvent;
@@ -68,10 +67,7 @@ public class SituationBroadcaster extends DefaultRuleRuntimeEventListener {
                         participationNode.put("id", ((Persistent) participation.getActor()).getId());
                     }
 
-                    if (participation.getActor() instanceof Entity) {
-                        participationNode.put("type", ((Entity) participation.getActor()).getType());
-                    }
-                    else participationNode.put("type", participation.getActor().getClass().getCanonicalName());
+                    participationNode.put("type", participation.getActor().getClass().getCanonicalName());
 
                     participationNode.put("as", participation.getPart().getLabel());
                     participationsNode.add(participationNode);
