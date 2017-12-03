@@ -50,9 +50,4 @@
         <appender-ref ref="FILE"/>
     </root>
 
-    <root level="WARN">
-        <appender-ref ref="ASYNCFILE" />
-        <appender-ref ref="ASYNCSTDOUT" />
-    </root>
-
 </configuration>

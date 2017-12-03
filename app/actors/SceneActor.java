@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -52,6 +53,7 @@ public class SceneActor extends AbstractActor {
     private final EntityRepo entityRepo;
 
     private KieSession kSession;
+    private CompletableFuture engine;
 
 
     private KieSession newSession(Environment env, String sceneId) {
@@ -157,9 +159,20 @@ public class SceneActor extends AbstractActor {
 
         kSession.setGlobal("logger", logger);
 
-        ExecutorService ex;
-        ex = Executors.newSingleThreadExecutor();
-        ex.submit((Runnable) kSession::fireUntilHalt);
+        engine = CompletableFuture.runAsync(kSession::fireUntilHalt)
+              .exceptionally(
+                err -> {
+                    logger.error(err.toString());
+                    return null;
+                }
+        );
+    }
+
+    @Override
+    public void postStop() {
+        logger.info("Shutting down SCENE engine...");
+        engine.cancel(true);
+        kSession.dispose();
     }
 
     @Inject
@@ -183,16 +196,26 @@ public class SceneActor extends AbstractActor {
                     }
                     switch (operation.type) {
                         case INSERT:
-                            kSession.submit(session -> collection.forEach(session::insert));
+                            kSession.submit(session -> collection.forEach(item -> {
+                                if (session.getFactHandle(item) == null) {
+                                    logger.info("inserting object... {}", item);
+                                    session.insert(item);
+                                    logger.info("object inserted...");
+                                }
+                            } ));
                             break;
                         case UPDATE:
                             kSession.submit(session -> collection.forEach(item -> {
                                 FactHandle handle = session.getFactHandle(item);
                                 if (handle == null) {
-                                    logger.debug("fact handle for `{}` not found... inserting it", item);
+                                    logger.info("fact handle for `{}` not found... inserting it", item);
+                                    logger.info("inserting object... {}", item);
                                     session.insert(item);
+                                    logger.info("object inserted...");
                                 } else {
+                                    logger.info("updating object... {}", item);
                                     session.update(handle, item);
+                                    logger.info("object updated...");
                                 }
                             }));
                             break;

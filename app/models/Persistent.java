@@ -3,6 +3,7 @@ package models;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import io.ebean.Model;
+import play.libs.Json;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -20,6 +21,11 @@ public class Persistent extends Model {
 
     public Long getId() {
         return id;
+    }
+
+    @Override
+    public String toString() {
+        return Json.toJson(this).toString();
     }
 
 }
