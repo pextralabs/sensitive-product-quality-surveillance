@@ -1,8 +1,8 @@
 package repos;
 
 import db.DatabaseExecutionContext;
-import models.Entity;
-import models.Sensor;
+import models.base.Entity;
+import models.base.Sensor;
 import play.db.ebean.EbeanConfig;
 
 import javax.inject.Inject;

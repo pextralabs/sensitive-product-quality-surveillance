@@ -9,6 +9,7 @@ import org.kie.api.conf.EqualityBehaviorOption;
 import org.kie.api.runtime.rule.FactHandle;
 import play.api.Environment;
 import repos.EntityRepo;
+import repos.SensorRepo;
 import scala.Option;
 import scene.SituationBroadcaster;
 import javassist.ClassPool;
@@ -51,10 +52,10 @@ public class SceneActor extends AbstractActor {
     private final Set<ActorRef> subscribers;
     private final Environment env;
     private final EntityRepo entityRepo;
+    private final SensorRepo sensorRepo;
 
     private KieSession kSession;
     private CompletableFuture engine;
-
 
     private KieSession newSession(Environment env, String sceneId) {
         // Getting KieServices
@@ -157,6 +158,15 @@ public class SceneActor extends AbstractActor {
             }
         );
 
+        sensorRepo.getSensors().thenAccept(
+                sensors -> {
+                    self().tell(new Protocols.Operation(sensors, INSERT), self() );
+                    sensors.forEach(
+                            sensor -> self().tell(new Protocols.Operation(sensor.getStreams(), INSERT), self() )
+                    );
+                }
+        );
+
         kSession.setGlobal("logger", logger);
 
         engine = CompletableFuture.runAsync(kSession::fireUntilHalt)
@@ -176,8 +186,9 @@ public class SceneActor extends AbstractActor {
     }
 
     @Inject
-    public SceneActor(Environment env, EntityRepo entityRepo) {
+    public SceneActor(Environment env, EntityRepo entityRepo, SensorRepo sensorRepo) {
         this.env = env;
+        this.sensorRepo = sensorRepo;
         this.entityRepo = entityRepo;
 
         this.subscribers = new HashSet<>();
